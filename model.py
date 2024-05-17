@@ -81,7 +81,7 @@ class FeedForwardBlock(nn.Module):
     self.learn2 = nn.Linear(d_ff, d_model) # We and B2
     
   def forward(self, x):
-    # (batch, seq_len, d_model) --> (batch, seq_len, d_ff) --> (batch, seq_len, d_model
+    # (batch, seq_len, d_model) --> (batch, seq_len, d_ff) --> (batch, seq_len, d_model)
     return self.learn2(self.dropout(torch.relu(self.learn1(x))))
   
 
@@ -264,7 +264,64 @@ class Transformer(nn.Module):
     return self.projection_layer(x)
   
 
-# def build_transformer()
+def build_transformer(src_vocal_size: int, tgt_voval_size: int, src_seq_len: int, tgt_seq_len: int, d_model: int = 512, N: int = 6, head: int = 8, dropout: float = 0.1, d_ff: int = 2048) -> Transformer:
+  # create embeding layers 
+  src_embed = InputEmbedding(d_model, src_vocal_size)
+  tgt_embed = InputEmbedding(d_model, tgt_voval_size)
   
+  # create positional encoding layers
+  src_pos = PositionalEncoding(d_model, src_seq_len, dropout)
+  tgt_pos = PositionalEncoding(d_model, tgt_seq_len, dropout)
+  
+  # create encoder blocks 
+  encoder_blocks = []
+  for _ in range(N): 
+    encoder_self_attention_block = MultiHeadAttentionBlock(d_model, head, dropout)
+    FeedForwardBlock = FeedForwardBlock(d_model, d_ff, dropout)
+    encoder_block = EncoderBlock(encoder_self_attention_block, FeedForwardBlock, dropout)
+    encoder_blocks.append(encoder_block)
+    
+  # create decoder blocks
+  decoder_blocks = []
+  for _ in range(N): 
+    decoder_self_attention_block = MultiHeadAttentionBlock(d_model, head, dropout)
+    decoder_cross_attention_block = MultiHeadAttentionBlock(d_model, head, dropout)
+    FeedForwardBlock = FeedForwardBlock(d_model, d_ff, dropout)
+    decoder_block = DecoderBlock(decoder_self_attention_block, decoder_cross_attention_block, FeedForwardBlock, dropout)
+    decoder_blocks.append(decoder_block)
+    
+  # create encoder and decoder
+  encoder = Encoder(nn.ModuleList(encoder_blocks))
+  decoder = Decoder(nn.ModuleList(decoder_blocks))
+  
+  # create projection layer
+  projection_layer = ProjectionLayer(d_model, tgt_voval_size)
+  
+  # create transformer
+  transformer  = Transformer(encoder, decoder, src_embed, tgt_embed, src_pos, tgt_pos, projection_layer)
+  
+  # initialize the parameters
+  '''
+  Avoiding Symmetry: Proper initialization helps break symmetry, ensuring that neurons in the network do not all 
+    start with the same values and learn the same features during training.
+  Ensuring Proper Signal Flow: Initialization affects the flow of data through the network. Poor initialization 
+    can lead to vanishing or exploding gradients, which impede training.
+    
+  Xavier (Glorot) Initialization: Named after Xavier Glorot, this method is designed to keep the scale of the 
+    gradients roughly the same in all layers of the network. It is particularly effective for layers with a linear 
+    or sigmoid activation function.
+  Uniform Distribution: The uniform variant of Xavier initialization draws values from a uniform distribution within 
+    a range determined by the number of input and output neurons.
+    
+  Different types of layers in PyTorch have their own default initialization schemes. However, for more control and 
+    to follow best practices, it is common to explicitly initialize the weights, especially in more complex models 
+    like the Transformer.
+  In TensorFlow 2.0+ using the Keras API, layers often use Glorot uniform initialization by default. 
+  '''
+  for p in transformer.parameters(): 
+    if p.dim() > 1: 
+      nn.init.xavier_uniform_(p)
+      
+  return transformer
   
   
