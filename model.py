@@ -236,5 +236,6 @@ class ProjectionLayer(nn.Module):
     
   def forward(self, x): 
     # (batch, seq_len, d_model) --> (batch, seq_len, vocab_size)
+    # log_softmax is used to enhance numerical stability when handling small values in the softmax function, which used to lead to underflow
     return torch.log_softmax(self.proj(x), dim = -1)
     
