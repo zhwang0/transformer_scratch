@@ -238,4 +238,33 @@ class ProjectionLayer(nn.Module):
     # (batch, seq_len, d_model) --> (batch, seq_len, vocab_size)
     # log_softmax is used to enhance numerical stability when handling small values in the softmax function, which used to lead to underflow
     return torch.log_softmax(self.proj(x), dim = -1)
+
+
+class Transformer(nn.Module): 
+  
+  def __init__(self, encoder: Encoder, decoder: Decoder, src_embed: InputEmbedding, tgt_embed: InputEmbedding, src_pos: PositionalEncoding, tgt_pos: PositionalEncoding, projection_layer: ProjectionLayer) -> None: 
+    # scr_embed and tgt_embed are used to convert between different languages 
     
+    super().__init__()
+    self.encoder = encoder
+    self.decoder = decoder
+    self.src_embed = src_embed
+    self.tgt_embed = tgt_embed
+    self.src_pos = src_pos
+    self.tgt_pos = tgt_pos
+    self.projection_layer = projection_layer
+    
+  def encode(self, src, src_mask): 
+    return self.encoder(self.src_embed(src), src_mask)
+  
+  def decode(self, tgt, encoder_output, src_mask, tgt_mask): 
+    return self.decoder(self.tgt_pos(self.tgt_embed(tgt)), encoder_output, src_mask, tgt_mask)
+    
+  def project(self, x): 
+    return self.projection_layer(x)
+  
+
+# def build_transformer()
+  
+  
+  
