@@ -42,7 +42,8 @@ def get_or_build_tokenizer(config, ds, lang):
 
 
 def get_ds(config): 
-  ds_raw = load_dataset('opus_books', f'{config['lang_src']}-{config['lang_tgt']}', split='train')
+  print(config['lang_src'])
+  ds_raw = load_dataset('opus_books', f'{config["lang_src"]}-{config["lang_tgt"]}', split='train')
   
   # build tokenizer for source and target languages
   tokenizer_src = get_or_build_tokenizer(config, ds_raw, config['lang_src'])
