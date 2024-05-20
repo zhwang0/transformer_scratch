@@ -8,14 +8,14 @@ from config import get_config, get_weights_file_path
 
 from datasets import load_dataset
 from tokenizers import Tokenizer # The main class for handling tokenization processes. It is the interface to all tokenization operations.
-from tokenizers.models import WorldLevel # A model that uses a simple word-based tokenization approach.
+from tokenizers.models import WordLevel # A model that uses a simple word-based tokenization approach.
 from tokenizers.trainers import WordLevelTrainer # A trainer class specifically designed for training word-level tokenizers.
 from tokenizers.pre_tokenizers import Whitespace # A pre-tokenizer that splits the input on whitespace.
 
 from torch.utils.tensorboard import SummaryWriter
 
 from pathlib import Path
-import tqdm 
+from tqdm import tqdm 
 import warnings
 
 
@@ -31,7 +31,7 @@ def get_all_sentences(ds, lang):
 def get_or_build_tokenizer(config, ds, lang):
   tokenizer_path = Path(config['tokenizer_file'].format(lang))
   if not Path.exists(tokenizer_path):
-    tokenizer = Tokenizer(WorldLevel(unk_token='[UNK]'))
+    tokenizer = Tokenizer(WordLevel(unk_token='[UNK]'))
     tokenizer.pre_tokenizer = Whitespace()
     trainer = WordLevelTrainer(special_tokens=["[PAD]", "[UNK]", "[SOS]", "[ESO]"], min_frequency=2) # EOS is end of sentence, SOS is start of sentence
     tokenizer.train_from_iterator(get_all_sentences(ds, lang), trainer=trainer)
@@ -77,6 +77,7 @@ def get_ds(config):
 
 def get_model(config, vocal_src_len, vocal_tgt_len):
   model = build_transformer(vocal_src_len, vocal_tgt_len, config['seq_len'], config['seq_len'], config['d_model'])
+  return model
   
 
 def train_model(config): 
@@ -128,9 +129,9 @@ def train_model(config):
       decoder_mask = batch['decoder_mask'].to(device) # (batch_size, 1, seq_len, seq_len)
       label = batch['label'].to(device) # (batch_size, seq_len), the label is the position of the vocab in the target language
       
-      encoder_output = model.encoder(encoder_input, encoder_mask) # (batch_size, seq_len, d_model)
-      decoder_output = model.decoder(decoder_input, encoder_output, encoder_mask, decoder_mask) # (batch_size, seq_len, d_model)
-      proj_output = model.projection(decoder_output) # (batch_size, seq_len, tgt_vocal_size)
+      encoder_output = model.encode(encoder_input, encoder_mask) # (batch_size, seq_len, d_model)
+      decoder_output = model.decode(decoder_input, encoder_output, encoder_mask, decoder_mask) # (batch_size, seq_len, d_model)
+      proj_output = model.project(decoder_output) # (batch_size, seq_len, tgt_vocal_size)
         
       # (batch_size, seq_len, tgt_vocal_size) --> (batch_size * seq_len, tgt_vocal_size)
       loss = loss_fn(proj_output.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))

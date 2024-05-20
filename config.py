@@ -2,7 +2,7 @@ from pathlib import Path
 
 def get_config(): 
   return {
-    "batch_size": 8,
+    "batch_size": 20,
     "num_epochs": 20,
     "lr": 1e-4,
     "seq_len": 350, 
@@ -12,7 +12,7 @@ def get_config():
     "model_folder": "weights",
     "model_basename": "transformer",
     "preload": None, # if you want to load a pretrained model
-    "tokenzier_file": "tokenizer_{0}.json",
+    "tokenizer_file": "tokenizer_{0}.json",
     "experiment_name": "runs/transformer" # experiment name for tensorboard
   }
   

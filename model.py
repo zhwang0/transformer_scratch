@@ -12,7 +12,6 @@ class InputEmbedding(nn.Module):
   def forward(self, x):
     return self.embedding(x) * torch.sqrt(torch.tensor(self.d_model, dtype=torch.float32))
   
-  
 class PositionalEncoding(nn.Module):
   
   def __init__(self, d_model: int, max_seq_len: int, dropout: float) -> None: # return None from __init__ method, to enhance understanding and clarity
@@ -184,7 +183,7 @@ class EncoderBlock(nn.Module):
 
 class Encoder(nn.Module): 
   
-  def __init__(self, layers: nn.Modulelist) -> None: 
+  def __init__(self, layers: nn.ModuleList) -> None: 
     super().__init__()
     self.layers = layers
     self.norm = LayerNomalization()
@@ -209,7 +208,7 @@ class DecoderBlock(nn.Module):
     # tgt_mask/decoder_mask is used to mask the future tokens from the decoder output
     
     x = self.residual_connections[0](x, lambda x: self.self_attention_block(x, x, x, tgt_mask))
-    x = self.residual_connections[1](x, lambda x: self, self.corss_attention_block(x, encoder_output, encoder_output, src_mask))
+    x = self.residual_connections[1](x, lambda x: self.corss_attention_block(x, encoder_output, encoder_output, src_mask))
     x = self.residual_connections[2](x, self.feed_forward_block)
     return x
   
@@ -255,7 +254,7 @@ class Transformer(nn.Module):
     self.projection_layer = projection_layer
     
   def encode(self, src, src_mask): 
-    return self.encoder(self.src_embed(src), src_mask)
+    return self.encoder(self.src_pos(self.src_embed(src)), src_mask)
   
   def decode(self, tgt, encoder_output, src_mask, tgt_mask): 
     return self.decoder(self.tgt_pos(self.tgt_embed(tgt)), encoder_output, src_mask, tgt_mask)
@@ -277,8 +276,8 @@ def build_transformer(src_vocal_size: int, tgt_voval_size: int, src_seq_len: int
   encoder_blocks = []
   for _ in range(N): 
     encoder_self_attention_block = MultiHeadAttentionBlock(d_model, head, dropout)
-    FeedForwardBlock = FeedForwardBlock(d_model, d_ff, dropout)
-    encoder_block = EncoderBlock(encoder_self_attention_block, FeedForwardBlock, dropout)
+    feed_forward_block = FeedForwardBlock(d_model, d_ff, dropout)
+    encoder_block = EncoderBlock(encoder_self_attention_block, feed_forward_block, dropout)
     encoder_blocks.append(encoder_block)
     
   # create decoder blocks
@@ -286,8 +285,8 @@ def build_transformer(src_vocal_size: int, tgt_voval_size: int, src_seq_len: int
   for _ in range(N): 
     decoder_self_attention_block = MultiHeadAttentionBlock(d_model, head, dropout)
     decoder_cross_attention_block = MultiHeadAttentionBlock(d_model, head, dropout)
-    FeedForwardBlock = FeedForwardBlock(d_model, d_ff, dropout)
-    decoder_block = DecoderBlock(decoder_self_attention_block, decoder_cross_attention_block, FeedForwardBlock, dropout)
+    feed_forward_block = FeedForwardBlock(d_model, d_ff, dropout)
+    decoder_block = DecoderBlock(decoder_self_attention_block, decoder_cross_attention_block, feed_forward_block, dropout)
     decoder_blocks.append(decoder_block)
     
   # create encoder and decoder

@@ -15,9 +15,9 @@ class BilinguaDataset(Dataset):
     
     self.seq_len = seq_len
     
-    self.sos_token = torch.Tensor([self.tokenizer_tgt.token_to_id('[SOS]')], dtype=torch.int64).long()
-    self.eos_token = torch.Tensor([self.tokenizer_tgt.token_to_id('[EOS]')], dtype=torch.int64).long()
-    self.pad_token = torch.Tensor([self.tokenizer_tgt.token_to_id('[PAD]')], dtype=torch.int64).long()
+    self.sos_token = torch.tensor([self.tokenizer_src.token_to_id("[SOS]")], dtype=torch.int64)
+    self.eos_token = torch.tensor([self.tokenizer_src.token_to_id("[ESO]")], dtype=torch.int64)
+    self.pad_token = torch.tensor([self.tokenizer_src.token_to_id("[PAD]")], dtype=torch.int64)
     
   def __len__(self):
     return len(self.ds)
@@ -45,25 +45,25 @@ class BilinguaDataset(Dataset):
       [
         # add SOS and EOS to the soruce text
         self.sos_token,
-        torch.Tensor(enc_input_tokens, dtype=torch.int64),
+        torch.tensor(enc_input_tokens, dtype=torch.int64),
         self.eos_token,
-        torch.Tensor([self.pad_token]*enc_num_padding_tokens, dtype=torch.int64)
+        torch.tensor([self.pad_token]*enc_num_padding_tokens, dtype=torch.int64)
       ]
     )
     decoder_input = torch.cat(
       [
         # add SOS to the decoder input
         self.sos_token,
-        torch.Tensor(dec_input_tokens, dtype=torch.int64),
-        torch.Tensor([self.pad_token]*dec_num_padding_tokens, dtype=torch.int64)
+        torch.tensor(dec_input_tokens, dtype=torch.int64),
+        torch.tensor([self.pad_token]*dec_num_padding_tokens, dtype=torch.int64)
       ]
     )
     label = torch.cat(
       [
         # add EOS to the decoder label (what the model should predict)
-        torch.Tensor(dec_input_tokens, dtype=torch.int64),
+        torch.tensor(dec_input_tokens, dtype=torch.int64),
         self.eos_token,
-        torch.Tensor([self.pad_token]*dec_num_padding_tokens, dtype=torch.int64)
+        torch.tensor([self.pad_token]*dec_num_padding_tokens, dtype=torch.int64)
       ]
     )
     
