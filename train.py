@@ -250,13 +250,14 @@ def train_model(config):
       loss.backward()
       optimizer.step()
       optimizer.zero_grad()
-      
-      # validation 
-      run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, config['seq_len'], device, 
-                     lambda msg: batch_iterator.write(msg), global_step, writer, num_examples=2)
-      
+    
       global_step +=1 
   
+    # validation
+    run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, config['seq_len'], device, 
+                   lambda msg: batch_iterator.write(msg), global_step, writer, num_examples=10)
+      
+      
   model_filename = get_weights_file_path(config, str(epoch))
   torch.save({
     'model_state_dict': model.state_dict(),
