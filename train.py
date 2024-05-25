@@ -255,8 +255,9 @@ def train_model(config):
   
     # validation
     run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, config['seq_len'], device, 
-                   lambda msg: batch_iterator.write(msg), global_step, writer, num_examples=10)
-      
+                   lambda msg: batch_iterator.write(msg), global_step, writer, num_examples=2)
+  
+  writer.close()    
       
   model_filename = get_weights_file_path(config, str(epoch))
   torch.save({
