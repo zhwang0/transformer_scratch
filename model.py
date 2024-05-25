@@ -109,7 +109,7 @@ class MultiHeadAttentionBlock(nn.Module):
      # @ here is the matrix multiplication
     attention_scores = (query @ key.transpose(-2, -1)) / torch.sqrt(torch.tensor(d_k, dtype=torch.float32))
     if mask is not None: 
-      attention_scores = attention_scores.masked_fill_(mask == 0, -1e9)
+      attention_scores.masked_fill_(mask == 0, -1e9)
     attention_scores = torch.softmax(attention_scores, dim = -1) # (batch, head, seq_len, seq_len)
     if dropout is not None: 
       attention_scores = dropout(attention_scores)

@@ -13,7 +13,9 @@ from tokenizers.trainers import WordLevelTrainer # A trainer class specifically 
 from tokenizers.pre_tokenizers import Whitespace # A pre-tokenizer that splits the input on whitespace.
 
 from torch.utils.tensorboard import SummaryWriter
+import torchmetrics
 
+import os
 import warnings
 from tqdm import tqdm 
 from pathlib import Path
@@ -36,7 +38,7 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
     decoder_mask = causal_mask(decoder_input.size(1)).type_as(source_mask).to(device)
     
     # calculate the output of the decoder
-    out = model.decode(decoder_input, encoder_output, source_mask.unsqueeze(0), decoder_mask)
+    out = model.decode(decoder_input, encoder_output, source_mask, decoder_mask)
     
     # get the next token 
     prob = model.project(out[:,-1])
@@ -62,8 +64,12 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
   
   # sizze of the control window (just use a default value)
   try: 
-    with os.popen('stty size', 'r') as console_size: 
-      console_width = int(console_size.read().split()[1])
+    if os.name != 'nt':
+      with os.popen('stty size', 'r') as console_size: 
+        console_width = int(console_size.read().split()[1])
+    else: 
+      # Windows
+      console_width = os.get_terminal_size().columns
   except:
     console_width = 80
     
@@ -99,8 +105,8 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
   if writer: 
     # evaluate the cahracter error rate 
     # compute the char error rate
-    metric = torchmetircs.CharErrorRate()
-    cer = mecric(expected, predicted)
+    metric = torchmetrics.CharErrorRate()
+    cer = metric(expected, predicted)
     writer.add_scalar('Validation cer', cer, global_state)
     writer.flush()
     
@@ -111,7 +117,7 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
     writer.flush()
     
     # compute the BLEU score
-    metric = torchmetrics.BLEU()
+    metric = torchmetrics.BLEUScore()
     bleu = metric(expected, predicted)
     writer.add_scalar('Validation bleu', bleu, global_state)
     writer.flush()
@@ -218,9 +224,10 @@ def train_model(config):
   
   
   for epoch in range(initial_epoch, config['num_epochs']):
-    model.train()
+    
     batch_iterator = tqdm(train_dataloader, desc=f'Processing epoch {epoch}', total=len(train_dataloader))
     for batch in batch_iterator: 
+      model.train()
       
       encoder_input = batch['encoder_input'].to(device) # (batch_size, seq_len)
       decoder_input = batch['decoder_input'].to(device) # (batch_size, seq_len)
@@ -243,6 +250,10 @@ def train_model(config):
       loss.backward()
       optimizer.step()
       optimizer.zero_grad()
+      
+      # validation 
+      run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, config['seq_len'], device, 
+                     lambda msg: batch_iterator.write(msg), global_step, writer, num_examples=2)
       
       global_step +=1 
   
